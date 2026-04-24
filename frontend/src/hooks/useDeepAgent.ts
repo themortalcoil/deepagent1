@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { useStream } from '@langchain/react'
+import { Client } from '@langchain/langgraph-sdk'
 
 interface DeepAgentState {
   messages: Array<{
@@ -33,11 +35,45 @@ export interface SubagentInfo {
 const API_URL = import.meta.env.VITE_LANGGRAPH_API_URL || 'http://127.0.0.1:2024'
 const ASSISTANT_ID = import.meta.env.VITE_ASSISTANT_ID || 'deepagent'
 
+/** Stream modes supported by the langgraph-cli dev server (0.4.x) */
+const SUPPORTED_STREAM_MODES = new Set([
+  'values', 'messages', 'messages-tuple', 'updates',
+  'events', 'debug', 'custom',
+])
+
+/**
+ * Create a patched Client that filters out unsupported stream modes
+ * (e.g. "tools" which isn't in the langgraph-cli 0.4.x enum).
+ */
+function createPatchedClient() {
+  const client = new Client({ apiUrl: API_URL })
+  const origStream = client.runs.stream.bind(client.runs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client.runs.stream = (threadId: string, assistantId: string, options: any) => {
+    if (options?.streamMode) {
+      const modes = Array.isArray(options.streamMode)
+        ? options.streamMode
+        : [options.streamMode]
+      const filtered = modes.filter((m: string) => SUPPORTED_STREAM_MODES.has(m))
+      options = {
+        ...options,
+        streamMode: filtered.length > 0 ? filtered : ['values'],
+      }
+    }
+    return origStream(threadId, assistantId, options)
+  }
+  return client
+}
+
 export function useDeepAgent() {
+  const client = useMemo(() => createPatchedClient(), [])
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stream = useStream<DeepAgentState>({
     apiUrl: API_URL,
     assistantId: ASSISTANT_ID,
+    client,
+    fetchStateHistory: true,
     filterSubagentMessages: true,
   } as any)
 

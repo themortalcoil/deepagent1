@@ -14,5 +14,5 @@ include = ["src*"]
 
 [dependency-groups]
 dev = [
-    "langgraph-cli[inmem]>=0.4.24",
+    "langgraph-cli[inmem]>=0.3",
 ]
