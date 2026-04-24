@@ -10,7 +10,7 @@
 #   glm-5:cloud             — strong orchestrator
 #   nemotron-3-super:cloud  — alternate orchestrator
 #   qwen3.5:cloud           — good code model for subagent
-#   minimax-m2.7:cloud      — alternate code model
+#   minimax-m2.7:cloud     — alternate code model
 #   minimax-m2.5:cloud
 #
 # Quick start:
@@ -42,37 +42,10 @@ server-port port:
 
 # --- Ollama Cloud model overrides ---
 
-# Run with custom models (e.g. just run-models nemotron-3-super:cloud qwen3.5:cloud)
+# Run with custom models (e.g. just run-models nematron-3-super:cloud qwen3.5:cloud)
 run-models orchestrator dev:
     ORCHESTRATOR_MODEL={{orchestrator}} REACT_DEV_MODEL={{dev}} uv run python main.py
 
 # Convenience: nematron orchestrator + qwen3.5 dev
 run-nematron-qwen:
-    ORCHESTRATOR_MODEL=nemotron-3-super:cloud REACT_DEV_MODEL=qwen3.5:cloud uv run python main.py
-
-# --- Frontend commands ---
-
-# Install frontend dependencies
-fe-install:
-    cd frontend && npm install
-
-# Start frontend dev server
-fe-dev:
-    cd frontend && npm run dev
-
-# Build frontend for production
-fe-build:
-    cd frontend && npm run build
-
-# Preview production build
-fe-preview:
-    cd frontend && npm run preview
-
-# --- Full stack ---
-
-# Show instructions for full-stack dev
-dev:
-    @echo "In terminal 1: just server"
-    @echo "In terminal 2: just fe-dev"
-    @echo "Chat UI: http://localhost:5173"
-    @echo "LangGraph API: http://127.0.0.1:2024"
+    ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=qwen3.5:cloud uv run python main.py
