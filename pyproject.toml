@@ -11,3 +11,8 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["src*"]
+
+[dependency-groups]
+dev = [
+    "langgraph-cli[inmem]>=0.4.24",
+]
