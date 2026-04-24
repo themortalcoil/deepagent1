@@ -49,3 +49,30 @@ run-models orchestrator dev:
 # Convenience: nematron orchestrator + qwen3.5 dev
 run-nematron-qwen:
     ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=qwen3.5:cloud uv run python main.py
+
+# --- Frontend commands ---
+
+# Install frontend dependencies
+fe-install:
+    cd frontend && npm install
+
+# Start frontend dev server
+fe-dev:
+    cd frontend && npm run dev
+
+# Build frontend for production
+fe-build:
+    cd frontend && npm run build
+
+# Preview production build
+fe-preview:
+    cd frontend && npm run preview
+
+# --- Full stack ---
+
+# Start both LangGraph Server and frontend (requires two terminals or tmux)
+dev:
+    @echo "In terminal 1: just server"
+    @echo "In terminal 2: just fe-dev"
+    @echo "Chat UI: http://localhost:5173"
+    @echo "LangGraph API: http://127.0.0.1:2024"
