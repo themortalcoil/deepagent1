@@ -78,10 +78,10 @@ Override models via environment variables:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `ORCHESTRATOR_MODEL` | `glm-5:cloud` | Main agent routing/planning |
-| `REACT_DEV_MODEL` | `qwen3.5:cloud` | Code generation subagent |
+| `REACT_DEV_MODEL` | `glm-5.1:cloud` | Code generation subagent |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 
-Available Ollama Cloud models: `glm-5:cloud`, `nemotron-3-super:cloud`, `qwen3.5:cloud`, `minimax-m2.7:cloud`, `minimax-m2.5:cloud`
+Available Ollama Cloud models: `glm-5:cloud`, `glm-5.1:cloud`, `nemotron-3-super:cloud`, `qwen3.5:cloud`, `minimax-m2.7:cloud`, `minimax-m2.5:cloud`
 
 ## Verification
 

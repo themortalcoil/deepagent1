@@ -14,7 +14,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = str(_PROJECT_ROOT / "skills")
 
 ORCHESTRATOR_MODEL = os.environ.get("ORCHESTRATOR_MODEL", "glm-5:cloud")
-REACT_DEV_MODEL = os.environ.get("REACT_DEV_MODEL", "qwen3.5:cloud")
+REACT_DEV_MODEL = os.environ.get("REACT_DEV_MODEL", "glm-5.1:cloud")
 
 
 def _build_model(model_name: str) -> ChatOllama:
