@@ -4,19 +4,11 @@ Exports `agent` — a CompiledStateGraph that LangGraph Server loads.
 """
 
 import os
-from pathlib import Path
 
 from deepagents import create_deep_agent
 from langchain_ollama import ChatOllama
 
-# Resolve skills directory relative to project root
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SKILLS_DIR = str(_PROJECT_ROOT / "skills")
-
-# --- Model configuration ---
-# Orchestrator model (handles routing, planning, user interaction)
 ORCHESTRATOR_MODEL = os.environ.get("ORCHESTRATOR_MODEL", "glm-5:cloud")
-# React-developer subagent model (writes code, runs shell commands)
 REACT_DEV_MODEL = os.environ.get("REACT_DEV_MODEL", "qwen3.5:cloud")
 
 
@@ -29,7 +21,6 @@ def _build_model(model_name: str) -> ChatOllama:
     return ChatOllama(**kwargs)
 
 
-# Build the compiled graph at module level so `langgraph dev` can import it.
 agent = create_deep_agent(
     model=_build_model(ORCHESTRATOR_MODEL),
     system_prompt=(
@@ -38,7 +29,6 @@ agent = create_deep_agent(
         "which scaffolds and builds a complete React frontend. "
         "Present results clearly and help the user iterate on the design."
     ),
-    skills=[f"{SKILLS_DIR}/"],
     subagents=[
         {
             "name": "react-developer",
@@ -52,8 +42,6 @@ agent = create_deep_agent(
                 "You are an expert React frontend developer. When given a description, "
                 "you scaffold a Vite+React+TypeScript+Tailwind project, write all "
                 "components, and start the dev server.\n\n"
-                "Follow the react-scaffolding skill for project setup.\n"
-                "Follow the react-component-patterns skill for UI components.\n\n"
                 "## Workflow\n"
                 "1. Create project directory: `npm create vite@latest <name> -- --template react-ts`\n"
                 "2. Install dependencies: Tailwind CSS, any UI libs needed\n"
@@ -62,15 +50,14 @@ agent = create_deep_agent(
                 "5. Start dev server: `npm run dev -- --host 0.0.0.0`\n"
                 "6. Report the URL back so the user can see it\n\n"
                 "## Design Principles\n"
-                "- Use Tailwind CSS utility classes\n"
+                "- Use Tailwind CSS utility classes; prefer shadcn/ui patterns\n"
                 "- Mobile-responsive by default\n"
                 "- Realistic mock data (not lorem ipsum)\n"
                 "- Working interactions (button clicks, form inputs, toggles)\n"
                 "- Clean component decomposition\n"
-                "- NEVER leave placeholder content\n"
+                "- NEVER leave placeholder content — always use realistic data\n"
             ),
             "model": _build_model(REACT_DEV_MODEL),
-            "skills": [f"{SKILLS_DIR}/"],
         },
     ],
 )
