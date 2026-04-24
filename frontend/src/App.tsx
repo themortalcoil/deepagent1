@@ -62,6 +62,10 @@ function AppContent() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Find the last AI message that might still be streaming
+  const lastAiMsg = [...messages].reverse().find(m => m.type !== 'human' && m.type !== 'tool' && m.type !== 'ToolMessage')
+  const streamingId = isLoading ? lastAiMsg?.id : undefined
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       {/* Header */}
@@ -76,13 +80,13 @@ function AppContent() {
         {isLoading && (
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-            Thinking...
+            Working...
           </span>
         )}
       </header>
 
       {/* Subagent status bar */}
-      <SubagentStatus subagents={subagents} />
+      <SubagentStatus subagents={subagents} isLoading={isLoading} />
 
       {/* Error banner */}
       {errorMessage && (
@@ -120,7 +124,11 @@ function AppContent() {
 
         <div className="mx-auto max-w-3xl space-y-4">
           {messages.map((msg, i) => (
-            <ChatMessage key={msg.id ?? i} message={msg} />
+            <ChatMessage
+              key={msg.id ?? i}
+              message={msg}
+              isStreaming={msg.id === streamingId}
+            />
           ))}
           <div ref={bottomRef} />
         </div>
