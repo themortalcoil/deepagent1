@@ -107,5 +107,6 @@ project-name/
     index.css       # Tailwind imports
   index.html
   vite.config.ts
+  tailwind.config.ts  # Only needed for Tailwind v3; v4 uses CSS config
   package.json
 ```
