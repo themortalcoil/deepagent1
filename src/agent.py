@@ -3,10 +3,13 @@
 Exports `agent` — a CompiledStateGraph that LangGraph Server loads.
 """
 
+import json
 import os
 from pathlib import Path
 
 from deepagents import create_deep_agent
+from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.backends.protocol import WriteResult
 from langchain_ollama import ChatOllama
 
 # Resolve skills directory relative to project root
@@ -43,6 +46,7 @@ NEVER pass content as a dict/object. Stringify JSON/YAML content before passing 
 - NEVER leave placeholder content
 """
 
+
 def _build_model(model_name: str) -> ChatOllama:
     """Build a ChatOllama model instance."""
     kwargs: dict = {"model": model_name}
@@ -51,6 +55,30 @@ def _build_model(model_name: str) -> ChatOllama:
         kwargs["base_url"] = base_url
     return ChatOllama(**kwargs)
 
+
+class RobustFilesystemBackend(FilesystemBackend):
+    """FilesystemBackend that auto-serializes dict content to JSON strings.
+
+    Some models (e.g., GLM) pass write_file content as a dict instead of a str.
+    This subclass coerces any non-string content before delegating to the parent.
+    """
+
+    def write(self, file_path: str, content) -> WriteResult:
+        if isinstance(content, dict):
+            content = json.dumps(content, indent=2)
+        elif not isinstance(content, str):
+            content = str(content)
+        return super().write(file_path, content)
+
+    async def awrite(self, file_path: str, content) -> WriteResult:
+        if isinstance(content, dict):
+            content = json.dumps(content, indent=2)
+        elif not isinstance(content, str):
+            content = str(content)
+        return await super().awrite(file_path, content)
+
+
+backend = RobustFilesystemBackend(root_dir=str(_PROJECT_ROOT))
 
 agent = create_deep_agent(
     model=_build_model(ORCHESTRATOR_MODEL),
@@ -61,6 +89,7 @@ agent = create_deep_agent(
         "Present results clearly and help the user iterate on the design."
     ),
     skills=[f"{SKILLS_DIR}/"],
+    backend=backend,
     subagents=[
         {
             "name": "react-developer",

@@ -19,7 +19,7 @@ function getToolIcon(name: string) {
   return Wrench
 }
 
-export function SubagentStatus({ subagents, isLoading }: SubagentStatusProps) {
+export function SubagentStatus({ subagents }: SubagentStatusProps) {
   if (subagents.size === 0) return null
 
   const entries = Array.from(subagents.entries())

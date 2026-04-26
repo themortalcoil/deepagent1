@@ -48,19 +48,26 @@ const SUPPORTED_STREAM_MODES = new Set([
 function createPatchedClient() {
   const client = new Client({ apiUrl: API_URL })
   const origStream = client.runs.stream.bind(client.runs)
+
+  // Cast through `any` — we're intercepting all overloads and delegating
+  // to the original, which handles overload dispatch at runtime.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client.runs.stream = (threadId: string, assistantId: string, options: any) => {
-    if (options?.streamMode) {
-      const modes = Array.isArray(options.streamMode)
-        ? options.streamMode
-        : [options.streamMode]
+  ;(client.runs as any).stream = function(
+    threadId: any,
+    assistantId: string,
+    payload?: any,
+  ) {
+    if (payload?.streamMode) {
+      const modes = Array.isArray(payload.streamMode)
+        ? payload.streamMode
+        : [payload.streamMode]
       const filtered = modes.filter((m: string) => SUPPORTED_STREAM_MODES.has(m))
-      options = {
-        ...options,
+      payload = {
+        ...payload,
         streamMode: filtered.length > 0 ? filtered : ['values'],
       }
     }
-    return origStream(threadId, assistantId, options)
+    return origStream(threadId, assistantId, payload)
   }
   return client
 }
