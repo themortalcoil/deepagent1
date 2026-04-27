@@ -4,6 +4,7 @@ import { useDeepAgent } from './hooks/useDeepAgent'
 import { ChatMessage } from './components/ChatMessage'
 import { ChatInput } from './components/ChatInput'
 import { SubagentStatus } from './components/SubagentStatus'
+import { isAIMessage } from './types/messages'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -63,7 +64,7 @@ function AppContent() {
   }, [messages])
 
   // Find the last AI message that might still be streaming
-  const lastAiMsg = [...messages].reverse().find(m => m.type !== 'human' && m.type !== 'tool' && m.type !== 'ToolMessage')
+  const lastAiMsg = [...messages].reverse().find(isAIMessage)
   const streamingId = isLoading ? lastAiMsg?.id : undefined
 
   return (

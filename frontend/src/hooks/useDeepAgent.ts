@@ -1,21 +1,10 @@
 import { useMemo } from 'react'
 import { useStream } from '@langchain/react'
 import { Client } from '@langchain/langgraph-sdk'
+import type { Message } from '../types/messages'
 
 interface DeepAgentState {
-  messages: Array<{
-    role: string
-    content: string
-    type: string
-    name?: string
-    id?: string
-    tool_calls?: Array<{
-      name: string
-      args: Record<string, unknown>
-      id: string
-    }>
-    additional_kwargs?: Record<string, unknown>
-  }>
+  messages: Message[]
   todos?: Array<{
     id: string
     content: string
@@ -97,15 +86,7 @@ export function useDeepAgent() {
   return {
     ...stream,
     sendMessage,
-    messages: (stream.messages ?? []) as Array<{
-      type?: string
-      role?: string
-      content: string | Array<{ type: string; text?: string }>
-      name?: string
-      id?: string
-      tool_calls?: Array<{ name: string; args: Record<string, unknown>; id: string }>
-      additional_kwargs?: Record<string, unknown>
-    }>,
+    messages: (stream.messages ?? []) as Message[],
     isLoading: stream.isLoading,
     error: stream.error,
     subagents: subagents ?? new Map<string, SubagentInfo>(),

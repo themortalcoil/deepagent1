@@ -1,24 +1,10 @@
 import { Bot, User, Wrench, Loader2 } from 'lucide-react'
+import type { Message } from '../types/messages'
+import { isHumanMessage, isToolMessage, extractText } from '../types/messages'
 
 export interface ChatMessageProps {
-  message: {
-    type?: string
-    role?: string
-    content: string | Array<{ type: string; text?: string }>
-    name?: string
-    id?: string
-    tool_calls?: Array<{ name: string; args: Record<string, unknown>; id: string }>
-    additional_kwargs?: Record<string, unknown>
-  }
+  message: Message
   isStreaming?: boolean
-}
-
-function extractContent(content: string | Array<{ type: string; text?: string }>): string {
-  if (typeof content === 'string') return content
-  return content
-    .filter((block) => block.type === 'text' && block.text)
-    .map((block) => block.text!)
-    .join('\n')
 }
 
 function formatToolName(name: string): string {
@@ -42,9 +28,9 @@ function getToolDescription(tc: { name: string; args: Record<string, unknown> })
 }
 
 export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
-  const isHuman = message.type === 'human' || message.role === 'user'
-  const isTool = message.type === 'tool' || message.type === 'ToolMessage'
-  const text = extractContent(message.content)
+  const isHuman = isHumanMessage(message)
+  const isTool = isToolMessage(message)
+  const text = extractText(message.content)
   const hasContent = text.length > 0
 
   if (isHuman) {
