@@ -6,7 +6,7 @@ A full-stack Deep Agent system: a LangGraph-backed agent that generates React fr
 
 - **Backend**: Python 3.11+, `deepagents>=0.4.8`, `langchain-ollama`, LangGraph Server
 - **Chat Frontend**: React 19, TypeScript, Tailwind CSS 4, Vite, `@langchain/react`, `@langchain/langgraph-sdk`
-- **Models**: Ollama Cloud (`glm-5:cloud` orchestrator, `qwen3.5:cloud` react-developer subagent)
+- **Models**: Ollama Cloud (`glm-5:cloud` orchestrator, `glm-5.1:cloud` react-developer subagent)
 - **Package / env**: [uv](https://docs.astral.sh/uv/)
 - **Tasks**: [just](https://github.com/casey/just) — see `justfile`
 
@@ -78,7 +78,7 @@ Override models via environment variables:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `ORCHESTRATOR_MODEL` | `glm-5:cloud` | Main agent routing/planning |
-| `REACT_DEV_MODEL` | `glm-5.1:cloud` | Code generation subagent |
+| `REACT_DEV_MODEL` | `glm-5.1:cloud` | React code generation subagent |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 
 Available Ollama Cloud models: `glm-5:cloud`, `glm-5.1:cloud`, `nemotron-3-super:cloud`, `qwen3.5:cloud`, `minimax-m2.7:cloud`, `minimax-m2.5:cloud`

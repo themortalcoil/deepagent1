@@ -3,13 +3,13 @@
 # Environment (optional):
 #   OLLAMA_BASE_URL   — e.g. http://host:11434 (default: http://localhost:11434)
 #   ORCHESTRATOR_MODEL — orchestrator model (default: glm-5:cloud)
-#   REACT_DEV_MODEL   — react-developer subagent model (default: qwen3.5:cloud)
+#   REACT_DEV_MODEL   — react-developer subagent model (default: glm-5.1:cloud)
 #   DEEPAGENT_PROMPT  — user message (default: build a todo app)
 #
 # Ollama Cloud models available (`:cloud` tags):
 #   glm-5:cloud             — strong orchestrator
 #   nemotron-3-super:cloud  — alternate orchestrator
-#   qwen3.5:cloud           — good code model for subagent
+#   glm-5.1:cloud            — code generation subagent (default)
 #   minimax-m2.7:cloud     — alternate code model
 #   minimax-m2.5:cloud
 #
@@ -42,13 +42,13 @@ server-port port:
 
 # --- Ollama Cloud model overrides ---
 
-# Run with custom models (e.g. just run-models nematron-3-super:cloud qwen3.5:cloud)
+# Run with custom models (e.g. just run-models nematron-3-super:cloud glm-5.1:cloud)
 run-models orchestrator dev:
     ORCHESTRATOR_MODEL={{orchestrator}} REACT_DEV_MODEL={{dev}} uv run python main.py
 
-# Convenience: nematron orchestrator + qwen3.5 dev
+# Convenience: nematron orchestrator + glm-5.1 dev
 run-nematron-qwen:
-    ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=qwen3.5:cloud uv run python main.py
+    ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=glm-5.1:cloud uv run python main.py
 
 # --- Frontend commands ---
 
