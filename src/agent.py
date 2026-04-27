@@ -6,13 +6,14 @@ Exports `agent` — a CompiledStateGraph that LangGraph Server loads.
 import json
 import os
 from pathlib import Path
+from typing import Annotated
 
 from deepagents import create_deep_agent
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.protocol import WriteResult
-from deepagents.middleware.filesystem import WriteFileSchema
+from deepagents.middleware.filesystem import FilesystemMiddleware
 from langchain_ollama import ChatOllama
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 
 # Resolve skills directory relative to project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -58,57 +59,74 @@ def _build_model(model_name: str) -> ChatOllama:
     return ChatOllama(**kwargs)
 
 
+def _coerce_to_str(v) -> str:
+    """Coerce dict/list/primitive values to strings for tool calls.
+
+    GLM models sometimes pass write_file content as a dict instead of a string.
+    Used at both the Pydantic schema level and the backend level so dict
+    content is JSON-serialized and non-str primitives are stringified.
+    """
+    if isinstance(v, dict):
+        return json.dumps(v, indent=2)
+    if not isinstance(v, str):
+        return str(v)
+    return v
+
+
 class RobustFilesystemBackend(FilesystemBackend):
     """FilesystemBackend that auto-serializes dict content to JSON strings.
 
     Some models (e.g., GLM) pass write_file content as a dict instead of a str.
     This subclass coerces any non-string content before delegating to the parent.
+    Serves as defense-in-depth for direct backend calls that bypass Pydantic validation.
     """
 
     def write(self, file_path: str, content) -> WriteResult:
-        if isinstance(content, dict):
-            content = json.dumps(content, indent=2)
-        elif not isinstance(content, str):
-            content = str(content)
+        content = _coerce_to_str(content)
         return super().write(file_path, content)
 
     async def awrite(self, file_path: str, content) -> WriteResult:
-        if isinstance(content, dict):
-            content = json.dumps(content, indent=2)
-        elif not isinstance(content, str):
-            content = str(content)
+        content = _coerce_to_str(content)
         return await super().awrite(file_path, content)
 
 
-class PatchedWriteFileSchema(WriteFileSchema):
-    """WriteFileSchema that auto-serializes dict content to JSON strings.
+class _PatchedWriteFileSchema(BaseModel):
+    """Pydantic schema for write_file that coerces dict content to JSON strings.
 
-    GLM models sometimes pass write_file content as a dict instead of a string.
-    The base WriteFileSchema requires `content: str` and rejects dicts at the
-    Pydantic validation layer — before write() is ever called. This patched
-    schema coerces dicts/objects to strings at validation time, so the tool
-    invocation succeeds and RobustFilesystemBackend receives a proper string.
+    In deepagents 0.4.x, StructuredTool.from_function() auto-generates the
+    args_schema from type annotations. The `content: str` annotation causes
+    Pydantic to reject dicts outright with ValidationError. This schema replaces
+    the auto-generated one and adds a field_validator to coerce dicts/lists to
+    strings before Pydantic's str validation rejects them.
     """
+
+    file_path: Annotated[str, "Absolute path where the file should be created. Must be absolute, not relative."]
+    content: Annotated[str, "The text content to write to the file. This parameter is required."]
 
     model_config = {"extra": "allow"}
 
     @field_validator("content", mode="before")
     @classmethod
-    def coerce_content_to_str(cls, v):
-        if isinstance(v, dict):
-            return json.dumps(v, indent=2)
-        if not isinstance(v, str):
-            return str(v)
-        return v
+    def _coerce_content_to_str(cls, v):
+        return _coerce_to_str(v)
 
 
-# Replace WriteFileSchema globally so all deepagents tools use the patched version.
-# This is the only reliable injection point — the middleware module references
-# WriteFileSchema by name when constructing the write_file tool's args_schema.
-import deepagents.middleware.filesystem as _fs_mod
+# Monkey-patch FilesystemMiddleware._create_write_file_tool to swap in the
+# patched args_schema. This is necessary because create_deep_agent() creates
+# FilesystemMiddleware instances internally (in gp_middleware, subagent_middleware,
+# and deepagent_middleware) — we can't replace them via the middleware= parameter
+# without creating duplicate tools. Patching the method ensures ALL instances
+# created by create_deep_agent() use the coercing schema.
+_original_create_write_file_tool = FilesystemMiddleware._create_write_file_tool
 
-_fs_mod.WriteFileSchema = PatchedWriteFileSchema
 
+def _patched_create_write_file_tool(self):
+    tool = _original_create_write_file_tool(self)
+    tool.args_schema = _PatchedWriteFileSchema
+    return tool
+
+
+FilesystemMiddleware._create_write_file_tool = _patched_create_write_file_tool
 
 backend = RobustFilesystemBackend(root_dir=str(_PROJECT_ROOT))
 
