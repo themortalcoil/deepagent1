@@ -15,6 +15,8 @@ from deepagents.middleware.filesystem import FilesystemMiddleware
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, field_validator
 
+from src.middleware import WriteFileSanitizer
+
 # Resolve paths relative to project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = str(_PROJECT_ROOT / "skills")
@@ -262,6 +264,7 @@ agent = create_deep_agent(
     ),
     skills=[f"{SKILLS_DIR}/"],
     backend=backend,
+    middleware=[WriteFileSanitizer()],
     subagents=[
         {
             "name": "react-developer",
@@ -274,6 +277,7 @@ agent = create_deep_agent(
             "system_prompt": REACT_DEV_SYSTEM_PROMPT,
             "model": _build_model(REACT_DEV_MODEL),
             "skills": [f"{SKILLS_DIR}/"],
+            "middleware": [WriteFileSanitizer()],
         },
     ],
 )
