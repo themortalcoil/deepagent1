@@ -445,7 +445,7 @@ Each commit individually leaves the agent in a working state.
 
 ## Acceptance criteria
 
-- `src/agent.py` is < 150 lines total, with < 75 lines of structural Python code excluding the embedded `REACT_DEV_SYSTEM_PROMPT` constant. (Down from 278 lines.)
+- `src/agent.py` is ≤ 150 lines total, with ≤ 75 lines of structural Python code excluding the embedded `REACT_DEV_SYSTEM_PROMPT` constant. (Down from 278 lines.)
 - `src/agent.py` imports nothing from `deepagents.middleware.filesystem` or `pydantic`.
 - No assignment to `FilesystemMiddleware._create_write_file_tool` anywhere in the repo (i.e., the monkey-patch is gone). References in design docs or commit messages are fine.
 - `uv run pytest tests/` passes (11 tests).

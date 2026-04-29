@@ -50,6 +50,12 @@ run-models orchestrator dev:
 run-nematron-qwen:
     ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=glm-5.1:cloud uv run python main.py
 
+# --- Tests ---
+
+# Run unit tests
+test:
+    uv run pytest tests/
+
 # --- Frontend commands ---
 
 # Install frontend dependencies

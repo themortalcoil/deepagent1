@@ -110,6 +110,13 @@ Available Ollama Cloud models (see `.env.example` for full list):
 2. `cd frontend && npm run build` — chat UI builds
 3. `just server` — LangGraph Server starts on :2024
 4. End-to-end: open chat UI, send a prompt, see agent respond
+5. `just test` — 11 unit tests for `WriteFileSanitizer` middleware pass
+6. **Middleware regression check**: With `just server` running, send a prompt like "Build me a counter app" via the chat UI. After the agent finishes:
+
+   - `ls ~/.deepagent/output/<project-name>/` should show `package.json` + `src/` (regular project files).
+   - `ls ~/.deepagent/output/Users/` should NOT exist — if it does, sanitization regressed.
+   - `cat ~/.deepagent/output/<project-name>/package.json | jq .` should succeed — if it fails with a JSON parse error, dict-coercion regressed.
+   - Check `langgraph dev` server logs for `WriteFileSanitizer:` lines — these indicate which workarounds are still firing on the current model. Useful as input for a future PR that decides whether to delete the workarounds entirely.
 
 ## Known Limitations
 
