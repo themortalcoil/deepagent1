@@ -18,7 +18,13 @@ from pydantic import BaseModel, field_validator
 # Resolve paths relative to project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = str(_PROJECT_ROOT / "skills")
-OUTPUT_DIR = _PROJECT_ROOT / "output"
+
+# Output directory is outside the project tree so that LangGraph Server's
+# file watcher (watchfiles) doesn't trigger a reload every time the agent
+# writes a generated project file. This prevents the server from restarting
+# mid-conversation and killing the agent's run.
+_DEFAULT_OUTPUT_DIR = Path.home() / ".deepagent" / "output"
+OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", str(_DEFAULT_OUTPUT_DIR)))
 
 ORCHESTRATOR_MODEL = os.environ.get("ORCHESTRATOR_MODEL", "deepseek-v4-flash:cloud")
 REACT_DEV_MODEL = os.environ.get("REACT_DEV_MODEL", "deepseek-v4-flash:cloud")

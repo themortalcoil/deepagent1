@@ -26,7 +26,11 @@ User → React Chat UI (frontend/)
 
 ## Output Directory
 
-Generated projects are written to `output/` under the project root, sandboxed via `virtual_mode=True` on the FilesystemBackend. The agent uses virtual paths like `/my-app/package.json` which map to `<project-root>/output/my-app/package.json`. This prevents writes anywhere else on the filesystem.
+Generated projects are written to `~/.deepagent/output/` (outside the project tree), sandboxed via `virtual_mode=True` on the FilesystemBackend. The agent uses virtual paths like `/my-app/package.json` which map to `~/.deepagent/output/my-app/package.json`. This prevents writes anywhere else on the filesystem.
+
+**Why outside the project tree?** The LangGraph Server uses `watchfiles` (via uvicorn) to watch for code changes and hot-reload. If `output/` were inside the project directory, every file the agent writes would trigger a server restart, killing the agent's run mid-conversation. Moving the output directory to `~/.deepagent/output/` completely avoids this problem since the watcher only monitors the project directory.
+
+Override the output location with the `OUTPUT_DIR` env var if needed.
 
 ## Run the system
 
@@ -50,7 +54,7 @@ cd frontend && npm run dev
 Open http://localhost:5173, type a description like "Build me a task tracker app", and the agent will scaffold a React frontend. The agent writes all project files but CANNOT execute shell commands — after it finishes, run the generated app manually:
 
 ```bash
-cd output/<project-name> && npm install && npm run dev
+cd ~/.deepagent/output/<project-name> && npm install && npm run dev
 ```
 
 ### 4. CLI (alternative)
@@ -75,7 +79,7 @@ just run-prompt "Build me a weather app"    # custom prompt
 | `frontend/src/hooks/useDeepAgent.ts` | Hook wrapping @langchain/react useStream |
 | `frontend/src/components/` | ChatMessage, ChatInput, SubagentStatus |
 | `frontend/src/App.tsx` | Main chat interface with error boundary |
-| `output/` | Generated project output directory (sandboxed) |
+| `~/.deepagent/output/` | Generated project output directory (sandboxed, outside project tree) |
 | `pyproject.toml` | Python project metadata and dependencies |
 | `justfile` | Task runner recipes |
 | `.env.example` | Environment variable documentation |
@@ -89,6 +93,7 @@ Override models via environment variables:
 | `ORCHESTRATOR_MODEL` | `deepseek-v4-flash:cloud` | Main agent routing/planning |
 | `REACT_DEV_MODEL` | `deepseek-v4-flash:cloud` | React code generation subagent |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `OUTPUT_DIR` | `~/.deepagent/output` | Generated project output directory |
 
 Available Ollama Cloud models (see `.env.example` for full list):
 - **deepseek-v4-flash:cloud** — 284B MoE (13B active), top coding benchmarks, 1M context (recommended)

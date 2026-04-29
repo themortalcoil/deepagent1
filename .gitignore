@@ -36,5 +36,7 @@ htmlcov/
 # Worktrees
 .worktrees/
 
-# Generated project output
-output/
+# Generated project output (now lives at ~/.deepagent/output by default,
+# outside the project tree, so the LangGraph Server file watcher doesn't
+# trigger a reload on every generated file write)
+# output/
