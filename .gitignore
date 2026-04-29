@@ -35,3 +35,6 @@ htmlcov/
 
 # Worktrees
 .worktrees/
+
+# Generated project output
+output/
