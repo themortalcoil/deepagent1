@@ -116,7 +116,7 @@ def _sanitize_path(path: str) -> str:
     parts = Path(path).parts  # ('/', 'Users', 'scott', 'foo', 'bar.tsx')
     if path.startswith(("/Users/", "/home/")) and len(parts) > 3:
         return "/" + "/".join(parts[3:])
-    if len(parts) > 2:
+    if len(parts) > 3:
         return "/" + "/".join(parts[2:])
     return path
 
