@@ -1,20 +1,40 @@
 ---
 name: react-component-patterns
-description: Production-quality React component patterns using Tailwind CSS. Follow these patterns when generating UI components.
-version: 1.0.0
+description: Production-quality React component patterns using Tailwind CSS 4 and TypeScript strict mode. Follow these patterns when generating UI components.
+version: 2.0.0
 ---
 
 # React Component Patterns
 
+## CRITICAL: TypeScript Strictness
+
+All components must compile cleanly under TypeScript strict mode with `noUnusedLocals`. This means:
+- **No unused imports** — Remove any import that isn't referenced in the code
+- **No unused destructured variables** — If you destructure `{ foo, bar }` from a hook and only use `foo`, remove `bar`
+- **No unused function parameters** — Either use them or prefix with `_` (e.g., `_event`)
+
+Violating these causes `tsc -b` to fail and the entire build breaks.
+
+## CRITICAL: Tool Constraints
+
+You only have filesystem tools (`write_file`, `edit_file`, `read_file`, `ls`, `glob`, `grep`). You CANNOT run shell commands. Do not attempt `bash`, `execute`, `npm`, or any command-line tool.
+
+## CRITICAL: File Rules
+
+- **JSON files must be valid JSON** — No `//` comments in `.json` files
+- **No junk files** — Never create `test.txt`, `.gitkeep`, scratch files
+- **Use `edit_file` for existing files** — `write_file` will reject overwriting
+
 ## Design Principles
 
-1. **Tailwind-first** — Use utility classes, not custom CSS
+1. **Tailwind-first** — Use utility classes with Tailwind CSS 4 (`@import "tailwindcss"` in index.css)
 2. **Composition over configuration** — Small components, composed in pages
-3. **TypeScript strict** — Props interfaces for every component
+3. **TypeScript strict** — Props interfaces for every component, no unused variables
 4. **Realistic data** — Never use "Lorem ipsum" or placeholder text
 5. **Working interactions** — Every button, toggle, and form must do something (even if mocked with `useState`)
 6. **Mobile-first** — Start with mobile layout, add `md:` and `lg:` breakpoints
 7. **Accessible** — Use semantic HTML, `aria-*` where needed
+8. **No external icon libraries by default** — Use inline SVG for icons (keeps dependency count low). Add `lucide-react` only if the project explicitly needs many icons.
 
 ## Base Components
 
@@ -166,49 +186,45 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
 }
 ```
 
-### Data Table (Simple)
+## Hook Patterns
+
+### Timer Hook Example (shows strict TS compliance)
 
 ```tsx
-interface Column<T> {
-  header: string
-  accessor: keyof T | ((row: T) => React.ReactNode)
-}
+import { useState, useEffect, useRef, useCallback } from 'react'
 
-interface DataTableProps<T> {
-  columns: Column<T>[]
-  data: T[]
-  keyFn: (row: T) => string | number
-}
+export function useTimer(initialSeconds: number) {
+  const [timeRemaining, setTimeRemaining] = useState(initialSeconds)
+  const [isRunning, setIsRunning] = useState(false)
 
-export function DataTable<T>({ columns, data, keyFn }: DataTableProps<T>) {
-  return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {columns.map((col) => (
-              <th key={col.header} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
-          {data.map((row) => (
-            <tr key={keyFn(row)} className="hover:bg-gray-50">
-              {columns.map((col) => (
-                <td key={col.header} className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                  {typeof col.accessor === 'function' ? col.accessor(row) : String(row[col.accessor] ?? '')}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  const start = useCallback(() => setIsRunning(true), [])
+  const pause = useCallback(() => setIsRunning(false), [])
+  const reset = useCallback(() => {
+    setIsRunning(false)
+    setTimeRemaining(initialSeconds)
+  }, [initialSeconds])
+
+  useEffect(() => {
+    if (!isRunning || timeRemaining <= 0) return
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          setIsRunning(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isRunning, timeRemaining])
+
+  const progress = initialSeconds > 0 ? timeRemaining / initialSeconds : 0
+
+  return { timeRemaining, isRunning, progress, start, pause, reset }
 }
 ```
+
+**NOTE**: Only export and destructure what you actually use in the component. If the hook exports `toggleMode` but the component doesn't use it, DON'T destructure it.
 
 ## Mock Data Pattern
 
@@ -243,14 +259,29 @@ export const users: User[] = [
 
 ## Icon Usage
 
-Use `lucide-react` for all icons:
+Prefer inline SVG for a small number of icons (keeps dependencies minimal):
 
 ```tsx
-import { Plus, Search, Settings, ChevronRight } from 'lucide-react'
-
-// Inline
-<Plus className="h-4 w-4" />
-
-// With text
-<button className="..."><Plus className="mr-2 h-4 w-4" /> Add Item</button>
+// Inline SVG (preferred for 1-3 icons)
+<button className="...">
+  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+  Play
+</button>
 ```
+
+Use `lucide-react` only when the project needs many different icons:
+
+```tsx
+import { Plus, Search, Settings } from 'lucide-react'
+
+<Plus className="h-4 w-4" />
+```
+
+## Pitfalls
+
+1. **No unused destructured variables** — `const { foo, bar } = useHook()` where `bar` is never used will break `tsc -b`. Only destructure what you use.
+2. **No unused imports** — `import { Foo } from './Foo'` where Foo is never used breaks the build.
+3. **`moduleResolution: "bundler"`** — Required in tsconfig for `tsc -b` to resolve `vite.config.ts` modules.
+4. **Tailwind v4 uses `@import "tailwindcss"`** — Not `@tailwind base/components/utilities`. No `tailwind.config.js` or `postcss.config.js` needed.

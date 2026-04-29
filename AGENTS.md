@@ -47,7 +47,11 @@ cd frontend && npm run dev
 
 ### 3. Use it
 
-Open http://localhost:5173, type a description like "Build me a task tracker app", and watch the agent scaffold and serve a React frontend.
+Open http://localhost:5173, type a description like "Build me a task tracker app", and the agent will scaffold a React frontend. The agent writes all project files but CANNOT execute shell commands — after it finishes, run the generated app manually:
+
+```bash
+cd output/<project-name> && npm install && npm run dev
+```
 
 ### 4. CLI (alternative)
 
@@ -102,6 +106,12 @@ Available Ollama Cloud models (see `.env.example` for full list):
 3. `just server` — LangGraph Server starts on :2024
 4. End-to-end: open chat UI, send a prompt, see agent respond
 
+## Known Limitations
+
+- **No shell execution** — The subagent only has filesystem tools (`write_file`, `edit_file`, `read_file`, `ls`, `glob`, `grep`). It CANNOT run `npm install`, `npm run dev`, or any shell commands. The orchestrator should instruct the user to run these manually.
+- **Orchestrator over-delegation** — The orchestrator may try to spawn a second subagent to "install dependencies" or "start the dev server" after the react-developer finishes. This wastes time and creates junk files. The orchestrator prompt now explicitly tells it NOT to do this.
+- **`write_file` overwrites** — The `write_file` tool rejects existing files. Use `edit_file` (find-and-replace) for modifications.
+
 ## Guidelines for code changes
 
 - Agent code lives in `src/agent.py`; skills in `skills/`
@@ -110,3 +120,4 @@ Available Ollama Cloud models (see `.env.example` for full list):
 - After JS dependency changes: `cd frontend && npm install`
 - Do not commit `.env` files — use `.env.example` for documentation
 - Frontend uses TypeScript strict mode — run `npm run build` to check types
+- Generated projects also use TypeScript strict mode — the skills enforce `moduleResolution: "bundler"` in both tsconfigs
