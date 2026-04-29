@@ -48,10 +48,12 @@ This replaces:
 
 ### What changes
 
-`src/agent.py` collapses from **279 → ~65 lines** by:
+`src/agent.py` shrinks from **278 → ~135 lines** by:
 
-- **Removing:** `RobustFilesystemBackend` (subclass + 50-line `_sanitize_path`), `_PatchedWriteFileSchema`, the monkey-patch on `FilesystemMiddleware._create_write_file_tool`, and the standalone `_coerce_to_str`.
-- **Adding:** A new `src/middleware.py` (~65 lines) containing `WriteFileSanitizer`, plus a one-line `OUTPUT_DIR.mkdir(...)` in `agent.py` to replace the work the subclass `__init__` did.
+- **Removing:** `RobustFilesystemBackend` (subclass + 50-line `_sanitize_path`), `_PatchedWriteFileSchema`, the monkey-patch on `FilesystemMiddleware._create_write_file_tool`, and the standalone `_coerce_to_str`. ~151 lines deleted.
+- **Adding:** A new `src/middleware.py` (~75 lines) containing `WriteFileSanitizer`, plus a one-line `OUTPUT_DIR.mkdir(...)` in `agent.py` to replace the work the subclass `__init__` did. ~3 lines added to `agent.py`.
+
+Of the remaining 135 lines in `agent.py`, ~64 are the embedded `REACT_DEV_SYSTEM_PROMPT` constant; ~71 are structural Python code (imports, env vars, `_build_model`, the `create_deep_agent` call).
 
 ### Where the middleware is wired
 
@@ -159,7 +161,7 @@ class WriteFileSanitizer(AgentMiddleware):
         return await handler(self._maybe_rewrite(request))
 ```
 
-### `src/agent.py` — refactored (~65 lines)
+### `src/agent.py` — refactored (~135 lines total; ~71 lines of structural code, the rest is the embedded `REACT_DEV_SYSTEM_PROMPT`)
 
 ```python
 """DeepAgent entry point for LangGraph Server."""
@@ -443,7 +445,8 @@ Each commit individually leaves the agent in a working state.
 
 ## Acceptance criteria
 
-- `src/agent.py` is < 100 lines and imports nothing from `deepagents.middleware.filesystem` or `pydantic`.
+- `src/agent.py` is < 150 lines total, with < 75 lines of structural Python code excluding the embedded `REACT_DEV_SYSTEM_PROMPT` constant. (Down from 278 lines.)
+- `src/agent.py` imports nothing from `deepagents.middleware.filesystem` or `pydantic`.
 - No assignment to `FilesystemMiddleware._create_write_file_tool` anywhere in the repo (i.e., the monkey-patch is gone). References in design docs or commit messages are fine.
 - `uv run pytest tests/` passes (11 tests).
 - `uv run python -c "from src.agent import agent; print('OK')"` prints `OK` (existing AGENTS.md verification).
