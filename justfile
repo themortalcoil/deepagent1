@@ -2,16 +2,18 @@
 #
 # Environment (optional):
 #   OLLAMA_BASE_URL   — e.g. http://host:11434 (default: http://localhost:11434)
-#   ORCHESTRATOR_MODEL — orchestrator model (default: glm-5:cloud)
-#   REACT_DEV_MODEL   — react-developer subagent model (default: glm-5.1:cloud)
+#   ORCHESTRATOR_MODEL — orchestrator model (default: deepseek-v4-flash:cloud)
+#   REACT_DEV_MODEL   — react-developer subagent model (default: deepseek-v4-flash:cloud)
 #   DEEPAGENT_PROMPT  — user message (default: build a todo app)
 #
-# Ollama Cloud models available (`:cloud` tags):
-#   glm-5:cloud             — strong orchestrator
-#   nemotron-3-super:cloud  — alternate orchestrator
-#   glm-5.1:cloud            — code generation subagent (default)
-#   minimax-m2.7:cloud     — alternate code model
-#   minimax-m2.5:cloud
+# Ollama Cloud models available (`:cloud` tags) — see AGENTS.md for sizes/use-cases:
+#   deepseek-v4-flash:cloud  — top coding benchmarks, 1M context (default)
+#   deepseek-v4-pro:cloud    — frontier reasoning, best quality
+#   kimi-k2.6:cloud          — agentic/swarm, vision
+#   glm-5:cloud / glm-5.1:cloud — agentic engineering
+#   qwen3.5:cloud            — multimodal (vision)
+#   qwen3-coder-next:cloud   — coding-focused
+#   nemotron-3-super:cloud   — efficient MoE
 #
 # Quick start:
 #   just sync        — install deps
@@ -42,13 +44,13 @@ server-port port:
 
 # --- Ollama Cloud model overrides ---
 
-# Run with custom models (e.g. just run-models nematron-3-super:cloud glm-5.1:cloud)
+# Run with custom models (e.g. just run-models nemotron-3-super:cloud glm-5.1:cloud)
 run-models orchestrator dev:
     ORCHESTRATOR_MODEL={{orchestrator}} REACT_DEV_MODEL={{dev}} uv run python main.py
 
-# Convenience: nematron orchestrator + glm-5.1 dev
-run-nematron-qwen:
-    ORCHESTRATOR_MODEL=nematron-3-super:cloud REACT_DEV_MODEL=glm-5.1:cloud uv run python main.py
+# Convenience: nemotron orchestrator + glm-5.1 dev
+run-nemotron-glm:
+    ORCHESTRATOR_MODEL=nemotron-3-super:cloud REACT_DEV_MODEL=glm-5.1:cloud uv run python main.py
 
 # --- Tests ---
 
