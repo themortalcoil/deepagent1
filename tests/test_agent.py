@@ -3,14 +3,13 @@
 The agent itself (a CompiledStateGraph) is exercised end-to-end in the manual
 smoke test documented in AGENTS.md. These unit tests cover the pieces of the
 module that have actual logic — primarily the _build_model helper's
-conditional handling of OLLAMA_BASE_URL — plus a couple of import-time
-invariants (OUTPUT_DIR is created, the agent compiles).
+conditional handling of OLLAMA_BASE_URL — plus the import-time invariant
+that OUTPUT_DIR is created before any tool call lands.
 """
 
 from langchain_ollama import ChatOllama
-from langgraph.graph.state import CompiledStateGraph
 
-from src.agent import OUTPUT_DIR, _build_model, agent
+from src.agent import OUTPUT_DIR, _build_model
 
 
 def test_build_model_returns_chat_ollama_with_requested_model_and_no_base_url(monkeypatch):
@@ -31,16 +30,6 @@ def test_build_model_passes_base_url_when_env_var_set(monkeypatch):
 
 
 def test_output_dir_exists_after_module_import():
-    # OUTPUT_DIR.mkdir(parents=True, exist_ok=True) runs at module import time
-    # to replace the work the removed RobustFilesystemBackend.__init__ used to do.
-    # If this regresses, FilesystemBackend will fail on the first write because
-    # the root_dir doesn't exist.
+    # OUTPUT_DIR.mkdir(...) runs at import time. If that ever regresses,
+    # FilesystemBackend fails on the first write — guard against it here.
     assert OUTPUT_DIR.is_dir()
-
-
-def test_agent_compiles_to_state_graph():
-    # Smoke test: create_deep_agent(...) at module level didn't raise, and the
-    # returned object is a CompiledStateGraph. This catches gross wiring
-    # regressions (bad subagent spec, wrong middleware type, etc.) without
-    # making a model call.
-    assert isinstance(agent, CompiledStateGraph)

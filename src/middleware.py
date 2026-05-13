@@ -36,7 +36,10 @@ def _sanitize_path(path: str) -> str:
     idx = path.find("/output/")
     if idx >= 0:
         return path[idx + len("/output"):]  # leaves the leading "/"
-    parts = Path(path).parts  # ('/', 'Users', 'scott', 'foo', 'bar.tsx')
+    # Path("/Users/scott/foo/bar.tsx").parts -> ('/', 'Users', 'scott', 'foo', 'bar.tsx').
+    # /Users/ and /home/ paths skip 3 segments (root + host-prefix dir + username);
+    # other host prefixes (/tmp/, /var/, etc.) skip 2 (root + prefix dir).
+    parts = Path(path).parts
     if path.startswith(("/Users/", "/home/")) and len(parts) > 3:
         return "/" + "/".join(parts[3:])
     if len(parts) > 3:
@@ -54,25 +57,36 @@ class WriteFileSanitizer(AgentMiddleware):
     def _maybe_rewrite(self, request: ToolCallRequest) -> ToolCallRequest:
         if request.tool_call["name"] != "write_file":
             return request
-        args = dict(request.tool_call["args"])
-        original_path = args.get("file_path")
-        original_content = args.get("content")
-        if original_content is not None:
+        raw_args = request.tool_call["args"]
+        original_path = raw_args.get("file_path")
+        original_content = raw_args.get("content")
+
+        needs_content_coerce = (
+            original_content is not None and not isinstance(original_content, str)
+        )
+        sanitized_path = (
+            _sanitize_path(original_path) if isinstance(original_path, str) else None
+        )
+        needs_path_rewrite = (
+            sanitized_path is not None and sanitized_path != original_path
+        )
+        if not needs_content_coerce and not needs_path_rewrite:
+            return request
+
+        args = dict(raw_args)
+        if needs_content_coerce:
             args["content"] = _coerce_content_to_str(original_content)
-            if not isinstance(original_content, str):
-                logger.info(
-                    "WriteFileSanitizer: coerced content (type=%s) to str",
-                    type(original_content).__name__,
-                )
-        if isinstance(original_path, str):
-            sanitized = _sanitize_path(original_path)
-            if sanitized != original_path:
-                args["file_path"] = sanitized
-                logger.info(
-                    "WriteFileSanitizer: rewrote path %r -> %r",
-                    original_path,
-                    sanitized,
-                )
+            logger.info(
+                "WriteFileSanitizer: coerced content (type=%s) to str",
+                type(original_content).__name__,
+            )
+        if needs_path_rewrite:
+            args["file_path"] = sanitized_path
+            logger.info(
+                "WriteFileSanitizer: rewrote path %r -> %r",
+                original_path,
+                sanitized_path,
+            )
         return request.override(tool_call={**request.tool_call, "args": args})
 
     def wrap_tool_call(self, request, handler):

@@ -1,6 +1,7 @@
 """Unit tests for src.middleware."""
 
 import asyncio
+import json
 import logging
 
 from langgraph.prebuilt.tool_node import ToolCallRequest
@@ -18,6 +19,18 @@ def _make_tool_call_request(name: str, args: dict) -> ToolCallRequest:
     """
     tool_call = {"name": name, "args": args, "id": "test-call-id", "type": "tool_call"}
     return ToolCallRequest(tool_call=tool_call, tool=None, state=None, runtime=None)
+
+
+def _capture_handled_args(sanitizer: WriteFileSanitizer, request: ToolCallRequest) -> dict:
+    """Run sanitizer.wrap_tool_call and return the args observed by the handler."""
+    captured: dict = {}
+
+    def fake_handler(req):
+        captured["args"] = req.tool_call["args"]
+        return None
+
+    sanitizer.wrap_tool_call(request, fake_handler)
+    return captured["args"]
 
 
 def test_coerce_content_passes_strings_through():
@@ -60,30 +73,16 @@ def test_sanitize_path_falls_through_for_short_paths():
 
 
 def test_middleware_rewrites_write_file_args():
-    sanitizer = WriteFileSanitizer()
-    captured = {}
-
-    def fake_handler(req):
-        captured["args"] = req.tool_call["args"]
-        return None
-
     request = _make_tool_call_request(
         name="write_file",
         args={"file_path": "/Users/scott/output/foo/x.json", "content": {"k": "v"}},
     )
-    sanitizer.wrap_tool_call(request, fake_handler)
-    assert captured["args"]["file_path"] == "/foo/x.json"
-    assert captured["args"]["content"] == '{\n  "k": "v"\n}'
+    args = _capture_handled_args(WriteFileSanitizer(), request)
+    assert args["file_path"] == "/foo/x.json"
+    assert args["content"] == '{\n  "k": "v"\n}'
 
 
 def test_middleware_passes_through_other_tools():
-    sanitizer = WriteFileSanitizer()
-    captured = {}
-
-    def fake_handler(req):
-        captured["args"] = req.tool_call["args"]
-        return None
-
     request = _make_tool_call_request(
         name="edit_file",
         args={
@@ -92,9 +91,9 @@ def test_middleware_passes_through_other_tools():
             "new_string": "b",
         },
     )
-    sanitizer.wrap_tool_call(request, fake_handler)
     # Non-write_file tools are NOT rewritten by this middleware.
-    assert captured["args"]["file_path"] == "/Users/scott/output/foo/x.json"
+    args = _capture_handled_args(WriteFileSanitizer(), request)
+    assert args["file_path"] == "/Users/scott/output/foo/x.json"
 
 
 def test_middleware_awrap_tool_call_rewrites_async():
@@ -121,22 +120,15 @@ def test_middleware_passes_through_when_content_is_none():
     # If the model omits content (or sends null), the `original_content is not None`
     # guard prevents the coercion branch from running. Pydantic will then raise
     # a clear "field required" error downstream — we don't try to fabricate a value.
-    sanitizer = WriteFileSanitizer()
-    captured = {}
-
-    def fake_handler(req):
-        captured["args"] = req.tool_call["args"]
-        return None
-
     request = _make_tool_call_request(
         name="write_file",
         args={"file_path": "/foo/x.json", "content": None},
     )
-    sanitizer.wrap_tool_call(request, fake_handler)
+    args = _capture_handled_args(WriteFileSanitizer(), request)
     # content stays None — Pydantic will reject downstream, model retries.
-    assert captured["args"]["content"] is None
+    assert args["content"] is None
     # Path was already virtual; left alone.
-    assert captured["args"]["file_path"] == "/foo/x.json"
+    assert args["file_path"] == "/foo/x.json"
 
 
 def test_coerce_content_serializes_realistic_package_json():
@@ -152,7 +144,6 @@ def test_coerce_content_serializes_realistic_package_json():
     }
     result = _coerce_content_to_str(package_json)
     # Round-trips through json.loads without raising.
-    import json
     assert json.loads(result) == package_json
     # Indented (each top-level key on its own line) — confirms indent=2 is plumbed through.
     assert '\n  "name": "foo-app"' in result
@@ -163,7 +154,7 @@ def test_middleware_logs_when_rewriting(caplog):
     # grep for after a smoke run. Verify they fire when a rewrite happens.
     sanitizer = WriteFileSanitizer()
 
-    def fake_handler(req):
+    def fake_handler(_req):
         return None
 
     request = _make_tool_call_request(
@@ -183,7 +174,7 @@ def test_middleware_does_not_log_on_clean_passthrough(caplog):
     # drown out the real signal.
     sanitizer = WriteFileSanitizer()
 
-    def fake_handler(req):
+    def fake_handler(_req):
         return None
 
     request = _make_tool_call_request(
