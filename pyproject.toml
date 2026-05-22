@@ -15,4 +15,8 @@ include = ["src*"]
 [dependency-groups]
 dev = [
     "langgraph-cli[inmem]>=0.3",
+    "pytest>=8",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -31,11 +31,12 @@ Override models via environment variables:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `ORCHESTRATOR_MODEL` | `glm-5:cloud` | Main agent routing/planning |
-| `REACT_DEV_MODEL` | `glm-5.1:cloud` | React code generation subagent |
+| `ORCHESTRATOR_MODEL` | `deepseek-v4-flash:cloud` | Main agent routing/planning |
+| `REACT_DEV_MODEL` | `deepseek-v4-flash:cloud` | React code generation subagent |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `OUTPUT_DIR` | `~/.deepagent/output` | Generated project output directory |
 
-Available Ollama Cloud models: `glm-5:cloud`, `glm-5.1:cloud`, `nemotron-3-super:cloud`, `qwen3.5:cloud`, `minimax-m2.7:cloud`, `minimax-m2.5:cloud`
+Available Ollama Cloud models: `deepseek-v4-flash:cloud`, `deepseek-v4-pro:cloud`, `kimi-k2.6:cloud`, `glm-5:cloud`, `glm-5.1:cloud`, `qwen3.5:cloud`, `qwen3-coder-next:cloud`, `nemotron-3-super:cloud`. See [AGENTS.md](AGENTS.md#models) for sizes and recommended use cases.
 
 ## Architecture
 
