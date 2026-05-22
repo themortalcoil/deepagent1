@@ -1,64 +1,100 @@
 # Agent instructions for deepagent-1
 
-This repository is a minimal Python example of a [Deep Agents](https://github.com/langchain-ai/deepagents) app backed by LangGraph, using [langchain-ollama](https://python.langchain.com/docs/integrations/chat/ollama/) to talk to a local or remote Ollama server.
-
-For Cursor IDE–specific notes (rules, hooks, MCP), see the [Cursor](#cursor) section below.
+A full-stack Deep Agent system: a LangGraph-backed agent that generates React frontends from natural language, served via LangGraph Server and consumed by a React chat UI.
 
 ## Stack
 
-- **Python** 3.11+ (`requires-python` in `pyproject.toml`)
-- **Dependencies**: `deepagents`, `langchain-ollama` (see `pyproject.toml`)
+- **Backend**: Python 3.11+, `deepagents>=0.4.8`, `langchain-ollama`, LangGraph Server
+- **Chat Frontend**: React 19, TypeScript, Tailwind CSS 4, Vite, `@langchain/react`, `@langchain/langgraph-sdk`
+- **Models**: Ollama Cloud (`glm-5:cloud` orchestrator, `glm-5.1:cloud` react-developer subagent)
 - **Package / env**: [uv](https://docs.astral.sh/uv/)
 - **Tasks**: [just](https://github.com/casey/just) — see `justfile`
 
-## Run the app
+## Architecture
 
-1. Install [Ollama](https://ollama.com/) and pull a model that supports tool use (the default in code is `qwen3:8b`; override with `OLLAMA_MODEL`).
-2. From the repo root:
-   - `just sync` — install dependencies
-   - `just` or `just run` — run `main.py` via `uv run`
+```
+User → React Chat UI (frontend/)
+         ↓ SSE (LangGraph Server API)
+       DeepAgent (src/agent.py)
+         ↓ task tool
+       react-developer subagent
+         ↓ write_file / execute tools
+       Vite+React project (generated, on disk)
+         ↓ npm run dev
+       Working app on localhost:5173
+```
 
-Optional environment variables (documented in `main()` in `main.py`):
+## Run the system
 
-| Variable | Purpose |
-|----------|---------|
-| `OLLAMA_MODEL` | Model name (default `qwen3:8b`) |
-| `OLLAMA_BASE_URL` | Non-default Ollama URL, e.g. `http://host:11434` |
-| `DEEPAGENT_PROMPT` | User message; default is a short LangGraph question |
-
-Example:
+### 1. Start LangGraph Server
 
 ```bash
-DEEPAGENT_PROMPT="What is 2+2?" just run
+just server
+# or: uv run langgraph dev
+# Serves on http://127.0.0.1:2024
+```
+
+### 2. Start the chat frontend
+
+```bash
+cd frontend && npm run dev
+# Serves on http://localhost:5173
+```
+
+### 3. Use it
+
+Open http://localhost:5173, type a description like "Build me a task tracker app", and watch the agent scaffold and serve a React frontend.
+
+### 4. CLI (alternative)
+
+```bash
+just run                                    # default prompt
+just run-prompt "Build me a weather app"    # custom prompt
 ```
 
 ## Project layout
 
 | Path | Role |
 |------|------|
-| `main.py` | Entry point: builds `ChatOllama`, `create_deep_agent`, single `invoke` |
-| `pyproject.toml` | Project metadata and dependencies |
-| `justfile` | `sync`, `run` (default) |
-| `.gitignore` | Ignores `.venv/`, `.env*`, caches, build artifacts |
+| `src/agent.py` | Agent graph definition (exported for LangGraph Server) |
+| `src/__init__.py` | Package init |
+| `main.py` | CLI entry point (backward compat) |
+| `langgraph.json` | LangGraph Server config |
+| `skills/` | Agent skill files loaded by SkillsMiddleware |
+| `skills/react-scaffolding/` | Vite+React+Tailwind setup instructions |
+| `skills/react-component-patterns/` | UI component patterns |
+| `frontend/` | React chat UI (Vite+React+TS+Tailwind) |
+| `frontend/src/hooks/useDeepAgent.ts` | Hook wrapping @langchain/react useStream |
+| `frontend/src/components/` | ChatMessage, ChatInput, SubagentStatus |
+| `frontend/src/App.tsx` | Main chat interface with error boundary |
+| `pyproject.toml` | Python project metadata and dependencies |
+| `justfile` | Task runner recipes |
+| `.env.example` | Environment variable documentation |
 
-There is no test suite or CI configuration in-repo yet; if you add one, document the canonical command here.
+## Models
 
-## Cursor
+Override models via environment variables:
 
-This file (`AGENTS.md`) is project-level context for [Cursor](https://cursor.com/) agents alongside user rules. Prefer it for repo-specific facts (stack, commands, layout) so chat stays aligned with what is actually in the tree.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `ORCHESTRATOR_MODEL` | `glm-5:cloud` | Main agent routing/planning |
+| `REACT_DEV_MODEL` | `glm-5.1:cloud` | React code generation subagent |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 
-- **Rules** — Persistent, scoped guidance lives in `.cursor/rules/` as `.mdc` files (YAML frontmatter: `description`, optional `globs`, `alwaysApply`). See [Cursor Rules](https://cursor.com/docs/rules). Use rules for file-type or path-specific conventions; use this `AGENTS.md` for global project orientation and runbooks.
-- **Hooks** — Optional automation around agent lifecycle lives in `.cursor/hooks.json` and hook scripts if you add them; nothing is configured in-repo by default.
-- **MCP** — Model Context Protocol servers are user/workspace settings in Cursor. This demo does not require MCP; enable servers only when a task needs external tools (docs APIs, issue trackers, etc.).
-- **Terminal** — Prefer `just run` / `just sync` from the repo root so the same entry points humans use match agent verification steps above.
-
-## Guidelines for code changes
-
-- Prefer small, focused edits; keep `main.py` readable as a demo unless the user asks for a larger structure (e.g. package layout, CLI).
-- Match existing style: type hints where used, env-based configuration, docstring on `main()` for env contract.
-- Do not commit secrets; use `.env` locally if needed (gitignored). Prefer env vars already supported by `main.py` when extending configuration.
-- After dependency changes, ensure `pyproject.toml` stays consistent and mention `just sync` / `uv sync` in any setup notes you add.
+Available Ollama Cloud models: `glm-5:cloud`, `glm-5.1:cloud`, `nemotron-3-super:cloud`, `qwen3.5:cloud`, `minimax-m2.7:cloud`, `minimax-m2.5:cloud`
 
 ## Verification
 
-Before claiming the app runs: execute `just run` (or `uv run python main.py`) and confirm it completes without import errors; Ollama must be reachable for a successful end-to-end run.
+1. `uv run python -c "from src.agent import agent; print('OK')"` — agent imports cleanly
+2. `cd frontend && npm run build` — chat UI builds
+3. `just server` — LangGraph Server starts on :2024
+4. End-to-end: open chat UI, send a prompt, see agent respond
+
+## Guidelines for code changes
+
+- Agent code lives in `src/agent.py`; skills in `skills/`
+- Chat UI lives in `frontend/`
+- After Python dependency changes: `uv sync`
+- After JS dependency changes: `cd frontend && npm install`
+- Do not commit `.env` files — use `.env.example` for documentation
+- Frontend uses TypeScript strict mode — run `npm run build` to check types

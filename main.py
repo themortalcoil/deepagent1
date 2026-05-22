@@ -1,32 +1,19 @@
+"""CLI entry point for the Deep Agent.
+
+For LangGraph Server usage, see `src/agent.py` (exports `agent`).
+This file is kept for `just run` / `uv run python main.py` convenience.
+"""
+
 import os
 
-from deepagents import create_deep_agent
-from langchain_ollama import ChatOllama
+from src.agent import agent
 
 
 def main() -> None:
-    """Minimal Deep Agent (LangGraph-backed) using a local or remote Ollama model.
-
-    Env:
-      OLLAMA_MODEL — model name (default: qwen3:8b). Use a tag that supports tool calling.
-      OLLAMA_BASE_URL — optional; e.g. http://host:11434 for non-default Ollama.
-      DEEPAGENT_PROMPT — optional user message (default: short LangGraph question).
-    """
-    model_name = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
-    base_url = os.environ.get("OLLAMA_BASE_URL")
-    llm_kwargs: dict = {"model": model_name}
-    if base_url:
-        llm_kwargs["base_url"] = base_url
-    model = ChatOllama(**llm_kwargs)
-
-    agent = create_deep_agent(
-        model=model,
-        system_prompt="You are a helpful assistant. Answer clearly and use tools when they help.",
-    )
-
+    """Run a single agent invocation from the CLI."""
     prompt = os.environ.get(
         "DEEPAGENT_PROMPT",
-        "What is LangGraph in one sentence?",
+        "Build me a simple todo list app with React.",
     )
     result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
     print(result["messages"][-1].content)

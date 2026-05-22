@@ -31,3 +31,7 @@ htmlcov/
 # OS / editor
 .DS_Store
 .idea/
+.langgraph_api/
+
+# Worktrees
+.worktrees/

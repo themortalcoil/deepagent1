@@ -5,6 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "deepagents>=0.4.8",
+    "deepagents>=0.4.8,<0.5.0",
     "langchain-ollama>=1.0.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[dependency-groups]
+dev = [
+    "langgraph-cli[inmem]>=0.3",
 ]
